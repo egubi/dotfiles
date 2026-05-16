@@ -7,7 +7,7 @@ Manages: Zsh + Oh-My-Zsh, Starship prompt, shared aliases, and Git config.
 ## Quick start
 
 ```bash
-git clone <your-repo-url> ~/.dotfiles
+git clone git@github.com:egubi/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 ./install.sh
 ```
