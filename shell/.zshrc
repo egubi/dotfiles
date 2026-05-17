@@ -1,23 +1,18 @@
-# Oh-My-Zsh setup
-export ZSH="$HOME/.oh-my-zsh"
+# ── Shell options ────────────────────────────────────────────────────────────
 
-# Disable OMZ theme — Starship handles the prompt
-ZSH_THEME=""
+# History
+HISTSIZE=10000
+SAVEHIST=10000
+HISTFILE="$HOME/.zsh_history"
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt SHARE_HISTORY
+setopt APPEND_HISTORY
 
-# OMZ plugins
-plugins=(
-  git
-  z
-  zsh-autosuggestions
-  zsh-syntax-highlighting
-  docker
-  npm
-)
+# Auto-cd: type directory name to cd into it
+setopt AUTO_CD
 
-source "$ZSH/oh-my-zsh.sh"
-
-# Source shared aliases
-[[ -f "$HOME/.dotfiles/shell/aliases.sh" ]] && source "$HOME/.dotfiles/shell/aliases.sh"
+# ── Environment ──────────────────────────────────────────────────────────────
 
 # Preferred editor
 export EDITOR='vim'
@@ -27,16 +22,54 @@ export VISUAL='vim'
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
-# History
-HISTSIZE=10000
-SAVEHIST=10000
-HISTFILE="$HOME/.zsh_history"
-setopt HIST_IGNORE_DUPS
-setopt HIST_IGNORE_SPACE
-setopt SHARE_HISTORY
-
-# PATH additions — add your own below
+# PATH additions
 export PATH="$HOME/.local/bin:$PATH"
+
+# ── Platform-specific setup ──────────────────────────────────────────────────
+
+case "$(uname -s)" in
+  Darwin)
+    # Homebrew
+    if [[ -f /opt/homebrew/bin/brew ]]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [[ -f /usr/local/bin/brew ]]; then
+      eval "$(/usr/local/bin/brew shellenv)"
+    fi
+    
+    # zsh-autosuggestions (Homebrew)
+    ZSH_AUTOSUGGEST_BREW="/opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+    [[ -f "$ZSH_AUTOSUGGEST_BREW" ]] && source "$ZSH_AUTOSUGGEST_BREW"
+    
+    # zsh-syntax-highlighting (Homebrew) — must be loaded after other ZLE widgets
+    ZSH_HIGHLIGHT_BREW="/opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+    [[ -f "$ZSH_HIGHLIGHT_BREW" ]] && source "$ZSH_HIGHLIGHT_BREW"
+    ;;
+    
+  Linux)
+    # Detect WSL
+    if grep -qi microsoft /proc/version 2>/dev/null; then
+      export IS_WSL=1
+    fi
+    
+    # Linuxbrew / Homebrew on Linux
+    [[ -f /home/linuxbrew/.linuxbrew/bin/brew ]] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    
+    # zsh-autosuggestions (apt)
+    ZSH_AUTOSUGGEST_APT="/usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+    [[ -f "$ZSH_AUTOSUGGEST_APT" ]] && source "$ZSH_AUTOSUGGEST_APT"
+    
+    # zsh-syntax-highlighting (apt) — must be loaded after other ZLE widgets
+    ZSH_HIGHLIGHT_APT="/usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+    [[ -f "$ZSH_HIGHLIGHT_APT" ]] && source "$ZSH_HIGHLIGHT_APT"
+    ;;
+esac
+
+# ── Plugins & Tools ──────────────────────────────────────────────────────────
+
+# zoxide (modern replacement for z/autojump)
+if command -v zoxide &>/dev/null; then
+  eval "$(zoxide init zsh)"
+fi
 
 # Node version manager (nvm) — lazy-load for fast startup
 export NVM_DIR="$HOME/.nvm"
@@ -54,21 +87,12 @@ if command -v pyenv &>/dev/null; then
   eval "$(pyenv init -)"
 fi
 
-# Platform-specific extras
-case "$(uname -s)" in
-  Darwin)
-    # Homebrew
-    if [[ -f /opt/homebrew/bin/brew ]]; then
-      eval "$(/opt/homebrew/bin/brew shellenv)"
-    elif [[ -f /usr/local/bin/brew ]]; then
-      eval "$(/usr/local/bin/brew shellenv)"
-    fi
-    ;;
-  Linux)
-    # Linuxbrew / Homebrew on Linux
-    [[ -f /home/linuxbrew/.linuxbrew/bin/brew ]] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-    ;;
-esac
+# ── Aliases ──────────────────────────────────────────────────────────────────
+
+# Source shared aliases
+[[ -f "$HOME/.dotfiles/shell/aliases.sh" ]] && source "$HOME/.dotfiles/shell/aliases.sh"
+
+# ── Prompt ───────────────────────────────────────────────────────────────────
 
 # Starship prompt — must be last
 eval "$(starship init zsh)"

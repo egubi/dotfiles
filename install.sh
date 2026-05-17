@@ -57,7 +57,7 @@ link_file() {
   success "Linked: $dst → $src"
 }
 
-# ── Starship installation ─────────────────────────────────────────────────────
+# ── Package installation ─────────────────────────────────────────────────────
 
 install_starship() {
   if command -v starship &>/dev/null; then
@@ -68,6 +68,39 @@ install_starship() {
   info "Installing Starship..."
   curl -sS https://starship.rs/install.sh | sh -s -- --yes
   success "Starship installed."
+}
+
+install_packages_macos() {
+  if ! command -v brew &>/dev/null; then
+    warn "Homebrew not found. Install it from https://brew.sh then re-run this script."
+    return
+  fi
+
+  local packages=(zsh zsh-autosuggestions zsh-syntax-highlighting zoxide)
+  for pkg in "${packages[@]}"; do
+    if brew list "$pkg" &>/dev/null; then
+      success "$pkg already installed"
+    else
+      info "Installing $pkg via Homebrew..."
+      brew install "$pkg"
+      success "$pkg installed"
+    fi
+  done
+}
+
+install_packages_linux() {
+  local packages=(zsh zsh-autosuggestions zsh-syntax-highlighting zoxide)
+  
+  for pkg in "${packages[@]}"; do
+    # Check if package is installed
+    if dpkg -l | grep -q "^ii  $pkg "; then
+      success "$pkg already installed"
+    else
+      info "Installing $pkg via apt..."
+      sudo apt-get update -qq && sudo apt-get install -y "$pkg"
+      success "$pkg installed"
+    fi
+  done
 }
 
 # ── Git credential helper per platform ───────────────────────────────────────
@@ -93,7 +126,17 @@ configure_git_credential_helper() {
 # ── main ──────────────────────────────────────────────────────────────────────
 
 main() {
+  # Install core packages
   install_starship
+  
+  case "$OS" in
+    macos)
+      install_packages_macos
+      ;;
+    linux|wsl)
+      install_packages_linux
+      ;;
+  esac
 
   # Symlink dotfiles
   link_file "$DOTFILES_DIR/git/.gitconfig"          "$HOME/.gitconfig"
@@ -102,21 +145,6 @@ main() {
   link_file "$DOTFILES_DIR/starship/starship.toml"  "$HOME/.config/starship.toml"
 
   configure_git_credential_helper
-
-  # Platform-specific package nudges
-  case "$OS" in
-    macos)
-      if ! command -v brew &>/dev/null; then
-        warn "Homebrew not found. Install it from https://brew.sh then re-run this script."
-      fi
-      ;;
-    linux|wsl)
-      if ! command -v zsh &>/dev/null; then
-        info "Installing zsh..."
-        sudo apt-get update -qq && sudo apt-get install -y zsh
-      fi
-      ;;
-  esac
 
   # Set zsh as default shell if it isn't already
   if [[ "$SHELL" != *zsh ]]; then
