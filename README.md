@@ -14,6 +14,14 @@ cd ~/.dotfiles
 
 Then open a new terminal (or run `exec zsh`).
 
+## Uninstall
+
+```bash
+./uninstall.sh
+```
+
+Removes symlinks (restoring any `.backup` files), Oh My Zsh, Powerlevel10k, and optionally reverts the Git credential helper and default shell. Packages (zsh, zoxide) and fonts are left in place.
+
 ## What `install.sh` does
 
 1. Detects your OS (macOS / Linux / WSL)
