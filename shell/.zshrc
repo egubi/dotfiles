@@ -22,7 +22,7 @@ source "$ZSH/oh-my-zsh.sh"
 HISTSIZE=10000
 SAVEHIST=10000
 HISTFILE="$HOME/.zsh_history"
-setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY APPEND_HISTORY AUTO_CD
+setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY APPEND_HISTORY AUTO_CD BANG_HIST
 
 # ── Environment ──────────────────────────────────────────────────────────────
 
