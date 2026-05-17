@@ -162,6 +162,12 @@ install_linux() {
     success "zoxide already installed"
   fi
 
+  # Fonts only make sense on a local machine — skip when running over SSH
+  if [[ -n "${SSH_CLIENT:-}${SSH_TTY:-}" ]]; then
+    warn "SSH session detected — skipping font install (fonts must be installed on your local machine)."
+    return
+  fi
+
   # MesloLGS Nerd Font
   local font_dir="$HOME/.local/share/fonts"
   if fc-list | grep -qi "MesloLGS"; then
