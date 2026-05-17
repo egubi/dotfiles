@@ -30,23 +30,19 @@ info "Detected OS: $OS"
 
 # ── backup + symlink ──────────────────────────────────────────────────────────
 
-# Usage: link_file <source> <destination>
 link_file() {
   local src="$1"
   local dst="$2"
   local dst_dir
   dst_dir="$(dirname "$dst")"
 
-  # Create parent directories if needed
   mkdir -p "$dst_dir"
 
-  # Already the correct symlink — nothing to do
   if [[ -L "$dst" && "$(readlink "$dst")" == "$src" ]]; then
     success "Already linked: $dst"
     return
   fi
 
-  # Back up existing file/symlink
   if [[ -e "$dst" || -L "$dst" ]]; then
     local backup="${dst}.backup"
     warn "Backing up $dst → $backup"
@@ -57,43 +53,98 @@ link_file() {
   success "Linked: $dst → $src"
 }
 
-# ── Package installation ─────────────────────────────────────────────────────
+# ── Homebrew ──────────────────────────────────────────────────────────────────
 
-install_starship() {
-  if command -v starship &>/dev/null; then
-    success "Starship already installed: $(starship --version)"
-    return
-  fi
-
-  info "Installing Starship..."
-  curl -sS https://starship.rs/install.sh | sh -s -- --yes
-  success "Starship installed."
-}
-
-install_packages_macos() {
+require_brew() {
   if ! command -v brew &>/dev/null; then
     warn "Homebrew not found. Install it from https://brew.sh then re-run this script."
-    return
+    exit 1
   fi
-
-  local packages=(zsh zsh-autosuggestions zsh-syntax-highlighting zoxide)
-  for pkg in "${packages[@]}"; do
-    if brew list "$pkg" &>/dev/null; then
-      success "$pkg already installed"
-    else
-      info "Installing $pkg via Homebrew..."
-      brew install "$pkg"
-      success "$pkg installed"
-    fi
-  done
 }
 
-install_packages_linux() {
-  local packages=(zsh zsh-autosuggestions zsh-syntax-highlighting zoxide)
-  
+brew_install() {
+  local pkg="$1"
+  if brew list "$pkg" &>/dev/null; then
+    success "$pkg already installed"
+  else
+    info "Installing $pkg via Homebrew..."
+    brew install "$pkg"
+    success "$pkg installed"
+  fi
+}
+
+brew_cask_install() {
+  local pkg="$1"
+  if brew list --cask "$pkg" &>/dev/null; then
+    success "$pkg (cask) already installed"
+  else
+    info "Installing $pkg via Homebrew Cask..."
+    brew install --cask "$pkg"
+    success "$pkg installed"
+  fi
+}
+
+# ── Oh My Zsh ─────────────────────────────────────────────────────────────────
+
+install_omz() {
+  if [[ -d "$HOME/.oh-my-zsh" ]]; then
+    success "Oh My Zsh already installed"
+    return
+  fi
+  info "Installing Oh My Zsh..."
+  # Install unattended (RUNZSH=no prevents it from launching a new shell)
+  RUNZSH=no CHSH=no sh -c \
+    "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+  success "Oh My Zsh installed"
+}
+
+# ── Powerlevel10k ─────────────────────────────────────────────────────────────
+
+install_p10k() {
+  local p10k_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+  if [[ -d "$p10k_dir" ]]; then
+    success "Powerlevel10k already installed"
+    return
+  fi
+  info "Installing Powerlevel10k..."
+  git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$p10k_dir"
+  success "Powerlevel10k installed"
+}
+
+# ── OMZ custom plugins ────────────────────────────────────────────────────────
+
+install_omz_plugin() {
+  local name="$1"
+  local repo="$2"
+  local plugin_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/$name"
+  if [[ -d "$plugin_dir" ]]; then
+    success "OMZ plugin $name already installed"
+    return
+  fi
+  info "Installing OMZ plugin: $name..."
+  git clone --depth=1 "$repo" "$plugin_dir"
+  success "OMZ plugin $name installed"
+}
+
+# ── macOS setup ──────────────────────────────────────────────────────────────
+
+install_macos() {
+  require_brew
+
+  brew_install zsh
+  brew_install zoxide
+
+  # Nerd Font required by Powerlevel10k (MesloLGS NF)
+  brew tap homebrew/cask-fonts 2>/dev/null || true
+  brew_cask_install font-meslo-lg-nerd-font
+}
+
+# ── Linux setup ──────────────────────────────────────────────────────────────
+
+install_linux() {
+  local packages=(zsh curl git)
   for pkg in "${packages[@]}"; do
-    # Check if package is installed
-    if dpkg -l | grep -q "^ii  $pkg "; then
+    if dpkg -l "$pkg" 2>/dev/null | grep -q "^ii"; then
       success "$pkg already installed"
     else
       info "Installing $pkg via apt..."
@@ -101,9 +152,37 @@ install_packages_linux() {
       success "$pkg installed"
     fi
   done
+
+  # zoxide
+  if ! command -v zoxide &>/dev/null; then
+    info "Installing zoxide..."
+    curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
+    success "zoxide installed"
+  else
+    success "zoxide already installed"
+  fi
+
+  # MesloLGS Nerd Font
+  local font_dir="$HOME/.local/share/fonts"
+  if fc-list | grep -qi "MesloLGS"; then
+    success "MesloLGS Nerd Font already installed"
+  else
+    info "Installing MesloLGS Nerd Font..."
+    mkdir -p "$font_dir"
+    local base_url="https://github.com/romkatv/powerlevel10k-media/raw/master"
+    for font in \
+      "MesloLGS NF Regular.ttf" \
+      "MesloLGS NF Bold.ttf" \
+      "MesloLGS NF Italic.ttf" \
+      "MesloLGS NF Bold Italic.ttf"; do
+      curl -fsSL "$base_url/${font// /%20}" -o "$font_dir/$font"
+    done
+    fc-cache -f "$font_dir"
+    success "MesloLGS Nerd Font installed — set your terminal font to 'MesloLGS NF'"
+  fi
 }
 
-# ── Git credential helper per platform ───────────────────────────────────────
+# ── Git credential helper ─────────────────────────────────────────────────────
 
 configure_git_credential_helper() {
   local helper
@@ -113,8 +192,6 @@ configure_git_credential_helper() {
     linux) helper="store" ;;
   esac
 
-  # Inject [credential] block only if not already present in the symlinked config
-  local gitconfig="$HOME/.gitconfig"
   if ! git config --global --get credential.helper &>/dev/null; then
     git config --global credential.helper "$helper"
     info "Git credential helper set to: $helper"
@@ -126,27 +203,27 @@ configure_git_credential_helper() {
 # ── main ──────────────────────────────────────────────────────────────────────
 
 main() {
-  # Install core packages
-  install_starship
-  
   case "$OS" in
-    macos)
-      install_packages_macos
-      ;;
-    linux|wsl)
-      install_packages_linux
-      ;;
+    macos)         install_macos ;;
+    linux|wsl)     install_linux ;;
   esac
 
+  install_omz
+  install_p10k
+  install_omz_plugin zsh-autosuggestions \
+    https://github.com/zsh-users/zsh-autosuggestions
+  install_omz_plugin zsh-syntax-highlighting \
+    https://github.com/zsh-users/zsh-syntax-highlighting
+
   # Symlink dotfiles
-  link_file "$DOTFILES_DIR/git/.gitconfig"          "$HOME/.gitconfig"
-  link_file "$DOTFILES_DIR/shell/.zshrc"            "$HOME/.zshrc"
-  link_file "$DOTFILES_DIR/shell/aliases.sh"        "$HOME/.dotfiles/shell/aliases.sh"
-  link_file "$DOTFILES_DIR/starship/starship.toml"  "$HOME/.config/starship.toml"
+  link_file "$DOTFILES_DIR/git/.gitconfig"        "$HOME/.gitconfig"
+  link_file "$DOTFILES_DIR/shell/.zshrc"          "$HOME/.zshrc"
+  link_file "$DOTFILES_DIR/shell/aliases.sh"      "$HOME/.dotfiles/shell/aliases.sh"
+  link_file "$DOTFILES_DIR/shell/.p10k.zsh"       "$HOME/.p10k.zsh"
 
   configure_git_credential_helper
 
-  # Set zsh as default shell if it isn't already
+  # Set zsh as default shell
   if [[ "$SHELL" != *zsh ]]; then
     local zsh_path
     zsh_path="$(command -v zsh)"
@@ -155,7 +232,8 @@ main() {
   fi
 
   echo ""
-  success "Done! Open a new terminal (or run: exec zsh) to load your new config."
+  success "Done! Open a new terminal to load your new config."
+  warn "Remember to set your terminal font to 'MesloLGS NF' for Powerlevel10k glyphs."
 }
 
 main "$@"
