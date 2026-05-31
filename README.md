@@ -29,10 +29,11 @@ Removes symlinks (restoring any `.backup` files), Oh My Zsh, Powerlevel10k, and 
 3. Installs [Oh My Zsh](https://ohmyz.sh)
 4. Installs [Powerlevel10k](https://github.com/romkatv/powerlevel10k) theme
 5. Installs `zsh-autosuggestions` and `zsh-syntax-highlighting` plugins
-6. Symlinks each config file to its expected location (see table below)
-7. Backs up any existing files as `<file>.backup` before overwriting
-8. Sets the platform-appropriate Git credential helper
-9. Switches your default shell to zsh if needed
+6. **Linux/WSL only**: Installs [pyenv](https://github.com/pyenv/pyenv) + Python 3.12.2
+7. Symlinks each config file to its expected location (see table below)
+8. Backs up any existing files as `<file>.backup` before overwriting
+9. Sets the platform-appropriate Git credential helper
+10. Switches your default shell to zsh if needed
 
 Safe to re-run — existing correct symlinks are left untouched.
 
@@ -100,3 +101,51 @@ Everything else (zsh, OMZ, P10k, plugins, font) is installed automatically.
 | `..` / `...` | go up 1 / 2 directories |
 | `ll` | `ls -lhA` |
 | `reload` | `source ~/.zshrc` |
+
+## Python version management (Linux/WSL)
+
+On Linux and WSL, the installer automatically sets up [pyenv](https://github.com/pyenv/pyenv) for managing Python versions.
+
+**What's installed**:
+- pyenv (with all build dependencies for compiling Python)
+- Python 3.12.2 (set as global default)
+- Configured in `.zshrc` with proper initialization
+
+**Common pyenv commands**:
+
+```bash
+# List installed Python versions
+pyenv versions
+
+# List all available Python versions
+pyenv install --list
+
+# Install a specific version
+pyenv install 3.11.7
+
+# Set global default
+pyenv global 3.12.2
+
+# Set local version for current directory (creates .python-version file)
+pyenv local 3.11.7
+
+# Show current active version
+pyenv version
+```
+
+**Using with direnv**:
+
+Create a `.envrc` file in your project directory:
+
+```bash
+# Use pyenv Python version
+layout pyenv 3.12.2
+```
+
+Then activate it:
+
+```bash
+direnv allow
+```
+
+The combination of pyenv + direnv allows automatic Python version switching per directory.

@@ -188,6 +188,77 @@ install_linux() {
   fi
 }
 
+# ── pyenv setup ──────────────────────────────────────────────────────────────
+
+install_pyenv() {
+  # Only install on Linux/WSL
+  if [[ "$OS" != "linux" && "$OS" != "wsl" ]]; then
+    return
+  fi
+
+  export PYENV_ROOT="$HOME/.pyenv"
+  export PATH="$PYENV_ROOT/bin:$PATH"
+
+  # Check if pyenv is already installed
+  if [[ -d "$PYENV_ROOT" ]]; then
+    success "pyenv already installed"
+  else
+    info "Installing build dependencies for Python compilation..."
+    sudo apt-get update -qq
+    sudo apt-get install -y \
+      build-essential \
+      libssl-dev \
+      zlib1g-dev \
+      libbz2-dev \
+      libreadline-dev \
+      libsqlite3-dev \
+      curl \
+      git \
+      libncursesw5-dev \
+      xz-utils \
+      tk-dev \
+      libxml2-dev \
+      libxmlsec1-dev \
+      libffi-dev \
+      liblzma-dev
+    success "Build dependencies installed"
+
+    info "Installing pyenv..."
+    curl -fsSL https://pyenv.run | bash
+    success "pyenv installed"
+  fi
+
+  # Initialize pyenv for the current shell session
+  eval "$(pyenv init -)"
+
+  # Install Python 3.12.2 if not already installed
+  local python_version="3.12.2"
+  if pyenv versions --bare | grep -q "^${python_version}$"; then
+    success "Python $python_version already installed"
+  else
+    info "Installing Python $python_version (this may take several minutes)..."
+    pyenv install "$python_version"
+    success "Python $python_version installed"
+  fi
+
+  # Set as global default if not already set
+  local current_global
+  current_global="$(pyenv global 2>/dev/null || echo '')"
+  if [[ "$current_global" == "$python_version" ]]; then
+    success "Python $python_version already set as global default"
+  else
+    info "Setting Python $python_version as global default..."
+    pyenv global "$python_version"
+    success "Python $python_version set as global default"
+  fi
+
+  # Verify installation
+  if command -v pyenv &>/dev/null; then
+    success "pyenv verification: $(pyenv --version)"
+    success "Python verification: $(pyenv which python) (version $(pyenv version-name))"
+  fi
+}
+
 # ── Git credential helper ─────────────────────────────────────────────────────
 
 configure_git_credential_helper() {
@@ -220,6 +291,9 @@ main() {
     https://github.com/zsh-users/zsh-autosuggestions
   install_omz_plugin zsh-syntax-highlighting \
     https://github.com/zsh-users/zsh-syntax-highlighting
+
+  # Install pyenv (Linux/WSL only)
+  install_pyenv
 
   # Symlink dotfiles
   link_file "$DOTFILES_DIR/git/.gitconfig"        "$HOME/.gitconfig"
