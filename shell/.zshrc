@@ -76,3 +76,17 @@ fi
 # ── Powerlevel10k config ──────────────────────────────────────────────────────
 
 [[ -f "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
+
+
+# development
+alias gg="git add * --ignore-errors&&git commit -m "go"&&git push"
+alias dcb="docker-compose up --build"
+# kubernetes
+alias k=kubectl
+alias kx=kubectx
+export KUBECONFIG=$(find /Users/gubi/Dropbox/3-Resources/kubernetes/_configs/*.config.yaml -type f | tr '\n' ':')
+# export PATH="$HOME/.local/bin:$PATH"
+alias tp="terraform plan"
+alias ta="terraform apply"
+alias td="terraform destroy"
+alias pip="curl https://checkip.amazonaws.com"
