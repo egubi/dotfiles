@@ -20,7 +20,7 @@
 
   typeset -g POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(
     # =========================[ Line #1 ]=========================
-    os_icon
+    # os_icon
     host
     dir
     vcs
