@@ -69,6 +69,11 @@ if command -v pyenv &>/dev/null; then
   eval "$(pyenv init - zsh)"
 fi
 
+# direnv
+if command -v direnv &>/dev/null; then
+  eval "$(direnv hook zsh)"
+fi
+
 # ── Aliases ──────────────────────────────────────────────────────────────────
 
 [[ -f "$HOME/.dotfiles/shell/aliases.sh" ]] && source "$HOME/.dotfiles/shell/aliases.sh"

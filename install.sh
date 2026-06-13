@@ -133,6 +133,8 @@ install_macos() {
 
   brew_install zsh
   brew_install zoxide
+  brew_install pyenv
+  brew_install direnv
 
   # Nerd Font required by Powerlevel10k (MesloLGS NF)
   brew tap homebrew/cask-fonts 2>/dev/null || true
@@ -152,6 +154,15 @@ install_linux() {
       success "$pkg installed"
     fi
   done
+
+  # direnv
+  if ! command -v direnv &>/dev/null; then
+    info "Installing direnv..."
+    sudo apt-get update -qq && sudo apt-get install -y direnv
+    success "direnv installed"
+  else
+    success "direnv already installed"
+  fi
 
   # zoxide
   if ! command -v zoxide &>/dev/null; then
@@ -191,45 +202,53 @@ install_linux() {
 # ── pyenv setup ──────────────────────────────────────────────────────────────
 
 install_pyenv() {
-  # Only install on Linux/WSL
-  if [[ "$OS" != "linux" && "$OS" != "wsl" ]]; then
-    return
+  export PYENV_ROOT="$HOME/.pyenv"
+  
+  # On macOS, pyenv is installed via Homebrew (already done in install_macos)
+  # On Linux/WSL, we need to install it manually
+  if [[ "$OS" == "linux" || "$OS" == "wsl" ]]; then
+    # Check if pyenv is already installed
+    if [[ -d "$PYENV_ROOT" ]]; then
+      success "pyenv already installed"
+    else
+      info "Installing build dependencies for Python compilation..."
+      sudo apt-get update -qq
+      sudo apt-get install -y \
+        build-essential \
+        libssl-dev \
+        zlib1g-dev \
+        libbz2-dev \
+        libreadline-dev \
+        libsqlite3-dev \
+        curl \
+        git \
+        libncursesw5-dev \
+        xz-utils \
+        tk-dev \
+        libxml2-dev \
+        libxmlsec1-dev \
+        libffi-dev \
+        liblzma-dev
+      success "Build dependencies installed"
+
+      info "Installing pyenv..."
+      curl -fsSL https://pyenv.run | bash
+      success "pyenv installed"
+    fi
   fi
 
-  export PYENV_ROOT="$HOME/.pyenv"
-  export PATH="$PYENV_ROOT/bin:$PATH"
-
-  # Check if pyenv is already installed
-  if [[ -d "$PYENV_ROOT" ]]; then
-    success "pyenv already installed"
-  else
-    info "Installing build dependencies for Python compilation..."
-    sudo apt-get update -qq
-    sudo apt-get install -y \
-      build-essential \
-      libssl-dev \
-      zlib1g-dev \
-      libbz2-dev \
-      libreadline-dev \
-      libsqlite3-dev \
-      curl \
-      git \
-      libncursesw5-dev \
-      xz-utils \
-      tk-dev \
-      libxml2-dev \
-      libxmlsec1-dev \
-      libffi-dev \
-      liblzma-dev
-    success "Build dependencies installed"
-
-    info "Installing pyenv..."
-    curl -fsSL https://pyenv.run | bash
-    success "pyenv installed"
+  # Setup PATH for pyenv (works on both macOS and Linux)
+  if [[ -d "$PYENV_ROOT/bin" ]]; then
+    export PATH="$PYENV_ROOT/bin:$PATH"
   fi
 
   # Initialize pyenv for the current shell session
-  eval "$(pyenv init -)"
+  if command -v pyenv &>/dev/null; then
+    eval "$(pyenv init -)"
+  else
+    error "pyenv command not found. Installation may have failed."
+    return 1
+  fi
 
   # Install Python 3.12.2 if not already installed
   local python_version="3.12.2"
@@ -292,7 +311,7 @@ main() {
   install_omz_plugin zsh-syntax-highlighting \
     https://github.com/zsh-users/zsh-syntax-highlighting
 
-  # Install pyenv (Linux/WSL only)
+  # Install pyenv with Python 3.12.2
   install_pyenv
 
   # Symlink dotfiles
