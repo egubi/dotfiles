@@ -112,6 +112,9 @@
   typeset -g POWERLEVEL9K_LEFT_PROMPT_FIRST_SEGMENT_START_SYMBOL='░▒▓'
   typeset -g POWERLEVEL9K_RIGHT_PROMPT_LAST_SEGMENT_END_SYMBOL='▓▒░'
   typeset -g POWERLEVEL9K_EMPTY_LINE_LEFT_PROMPT_LAST_SEGMENT_END_SYMBOL=
+  ##################################[ host ]##################################
+  typeset -g POWERLEVEL9K_HOST_VISUAL_IDENTIFIER_EXPANSION=''
+  typeset -g POWERLEVEL9K_HOST_FOREGROUND=180
 
   #################################[ os_icon ]##################################
   typeset -g POWERLEVEL9K_OS_ICON_FOREGROUND=255
